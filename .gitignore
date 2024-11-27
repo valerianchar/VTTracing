@@ -1,0 +1,57 @@
+# Laravel & PHP
+/vendor/
+/node_modules/
+
+# Environnement
+.env
+.env.*.backup
+
+# Systèmes de fichiers spécifiques
+.DS_Store
+Thumbs.db
+
+# Caches divers
+/storage/*.key
+/storage/*.tmp
+/storage/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+!/storage/.gitignore
+
+# Journalisation
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Tests et outils
+/phpunit.xml
+/phpunit.result.cache
+
+# Dépendances Composer
+/composer.lock
+/public/hot
+/public/storage
+/public/mix-manifest.json
+
+# Dépendances Node.js
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+/pnpm-debug.log*
+
+# IDE & Outils locaux
+/.idea/
+/.vscode/
+/_ide_helper.php
+.phpstorm.meta.php
+*.swp
+*~
+
+# Système de contrôle de version
+/.git
+
+# Autres fichiers de configuration locaux
+Homestead.yaml
+Homestead.json
+
+.npm
