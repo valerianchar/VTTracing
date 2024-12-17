@@ -1,0 +1,93 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - '**'
+
+jobs:
+  deploy-main:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout du projet
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Pull du projet laradock
+      - name: Clone Laradock
+        run: |
+          git clone https://github.com/Laradock/laradock.git laradock
+          cd laradock
+
+      # 3. Modification du .env
+      - name: Update .env for Deployment
+        run: |
+          cd laradock
+          sed -i 's/COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=prod/' .env
+          sed -i 's/WORKSPACE_IMAGE_NAME=.*/WORKSPACE_IMAGE_NAME=custom-worker/' .env
+          echo "Updated .env for deployment"
+
+      # 4. Build et Push des images Docker
+      - name: Build and Push Docker Images
+        run: |
+          cd laradock
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+          docker-compose build nginx traefik worker pgadmin postgres-postgis
+          docker-compose push nginx traefik worker pgadmin postgres-postgis
+
+      # 5. Déploiement sur le VPS
+      - name: Deploy on VPS
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./laradock/"
+          target: "~/laradock"
+
+      - name: SSH to VPS and Pull & Run Containers
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/laradock
+            docker-compose pull nginx traefik worker pgadmin postgres-postgis
+            docker-compose up -d --force-recreate
+
+  test-branches:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout du projet
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Pull du projet laradock
+      - name: Clone Laradock
+        run: |
+          git clone https://github.com/Laradock/laradock.git laradock
+          cd laradock
+
+      # 3. Modification du .env pour les tests
+      - name: Update .env for Testing
+        run: |
+          cd laradock
+          sed -i 's/COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=test/' .env
+          echo "Updated .env for testing"
+
+      # 4. Override de certains containers pour tests
+      - name: Override Containers for Testing
+        run: |
+          cd laradock
+          docker-compose up -d workspace postgres-postgis
+          echo "Containers up for testing"
+
+      # 5. Lancer les tests
+      - name: Run Tests
+        run: |
+          cd laradock
+          docker-compose exec -T workspace php artisan test
