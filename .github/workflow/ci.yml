@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - '**'
+      - 'feat/**'  # Toutes les branches commençant par 'feat/'
 
 jobs:
-  deploy-main:
-    if: github.ref == 'refs/heads/main'
+  deploy-main-feat:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/')
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout du projet
@@ -59,7 +59,7 @@ jobs:
             docker-compose up -d --force-recreate
 
   test-branches:
-    if: github.ref != 'refs/heads/main'
+    if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/feat/')
     runs-on: ubuntu-latest
     steps:
       # 1. Checkout du projet
